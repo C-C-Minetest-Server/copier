@@ -125,11 +125,13 @@ minetest.register_chatcommand("copier_export",{
 
 minetest.register_chatcommand("copier_import",{
   params = "<copy name>",
-  privs = {creative=true},
+  -- privs = {creative=true},
   description = "Load a copier save table from a file",
   func = function(name,param)
     local player = minetest.get_player_by_name(name)
     if not player then return false, "Player not found!" end
+    local privs = minetest.get_player_privs(name)
+    if not(privs.creative or privs.maphack) then return false, "Missing `creative` or `maphack` privs!" end
     local is = ItemStack("copier:copier_ready")
     local file = io.open(SP .. "/" .. param)
     if not file then return false, "Copy not exist!" end
