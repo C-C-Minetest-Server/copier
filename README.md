@@ -7,7 +7,7 @@ A mod made for Minetest events, to copy and paste a block from/to a file or from
 ### In-game tool
 #### `copier:copier`
 The main tool of the mod. Punch a node to copy it.
-#### `copier:copier:ready`
+#### `copier:copier_ready`
 The copier with a copied node inside. Right click a node to paste the copied node to that place, and punch a node to change the copied node.
 #### Limits
  - You cannot copy or paste nodes that is locked but not owned by you.
