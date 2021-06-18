@@ -5,6 +5,10 @@ LGPL text at lgpl-2.1.md
 ]]--
 
 copier = {}
+local WP = minetest.get_worldpath()
+copier.save_path = WP .. "/copier_saves"
+local SP = copier.save_path
+minetest.mkdir(SP)
 function copier.place_node_from_copier(pos,IS,placer)
   if IS:is_empty() == true or not(minetest.registered_items[IS:get_name()]) or not(minetest.registered_items[IS:get_name()].groups) or not(minetest.registered_items[IS:get_name()].groups.copier == 2) then
     return false
@@ -17,11 +21,17 @@ function copier.place_node_from_copier(pos,IS,placer)
   if tmp_n_meta then
     n_meta = minetest.deserialize(tmp_n_meta)
   end
+  if n_meta.fields and n_meta.fields.owner and n_meta.fields.owner ~= placer:get_player_name() then
+    if placer:is_player() then
+      minetest.chat_send_player(placer:get_player_name(),"You cannot paste locked nodes that is not owned by you!")
+    end
+    return
+  end
   local n_param1 = meta:get_int("n_param1")
   local n_param2 = meta:get_int("n_param2")
   -- minetest.set_node(pos, node)
-  if minetest.is_protected(pos, placer) then
-    minetest.record_protection_violation(pos, placer)
+  if minetest.is_protected(pos, placer:get_player_name()) then
+    minetest.record_protection_violation(pos, placer:get_player_name())
     return false
   end
   minetest.set_node(pos, {name=n_name,param1=n_param1,param2=n_param2})
@@ -38,20 +48,25 @@ copier.on_use = function(itemstack, placer, pointed_thing)
   local n_name = n_data.name
   local n_param1 = n_data.param1
   local n_param2 = n_data.param2
-  local n_meta = minetest.get_meta(pos)
-  local n_owner = n_meta:get_string("owner")
-  if not(n_owner == "") and n_onwer ~= placer:get_player_name() then return end
+  local n_tmp_meta = minetest.get_meta(pos)
+  local n_meta = n_tmp_meta:to_table()
+  local n_owner = n_tmp_meta:get("owner")
+  if n_owner and n_owner ~= placer:get_player_name() then
+    if placer:is_player() then
+      minetest.chat_send_player(placer:get_player_name(),"You cannot copy locked nodes that is not owned by you!")
+    end
+    return
+  end
   for k,v in pairs(n_meta.inventory or {}) do
     for x,y in pairs(v) do
       n_meta.inventory[k][x] = y:to_string()
     end
   end
-  print(dump(n_meta))
   local i_meta = itemstack:get_meta()
   i_meta:set_string("n_name",n_name)
   i_meta:set_int("n_param1",n_param1)
   i_meta:set_int("n_param2",n_param2)
-  i_meta:set_string("n_meta",minetest.serialize(n_meta:to_table()))
+  i_meta:set_string("n_meta",minetest.serialize(n_meta))
   i_meta:set_string("description",minetest.registered_items["copier:copier_ready"].description .. "\nContains: " .. n_name)
   if minetest.registered_items[itemstack:get_name()] and minetest.registered_items[itemstack:get_name()].groups and minetest.registered_items[itemstack:get_name()].groups.copier == 1 then
     itemstack:set_name("copier:copier_ready")
@@ -65,6 +80,7 @@ minetest.register_tool("copier:copier",{
   groups = {copier = 1},
   inventory_image = "copier_copier.png",
   on_use = copier.on_use,
+  stack_max = 1,
 })
 
 minetest.register_tool("copier:copier_water",{
@@ -74,6 +90,7 @@ minetest.register_tool("copier:copier_water",{
   inventory_image = "copier_copier.png",
   on_use = copier.on_use,
   liquids_pointable = true,
+  stack_max = 1,
 })
 
 minetest.register_tool("copier:copier_ready",{
@@ -84,5 +101,43 @@ minetest.register_tool("copier:copier_ready",{
   on_use = copier.on_use,
   on_place = function(itemstack, placer, pointed_thing)
     copier.place_node_from_copier(minetest.get_pointed_thing_position(pointed_thing,true),itemstack,placer)
+  end,
+  stack_max = 1,
+})
+
+minetest.register_chatcommand("copier_export",{
+  params = "<copy name>",
+  privs = {server=true},
+  description = "Save a copier to a file",
+  func = function(name,param)
+    local player = minetest.get_player_by_name(name)
+    if not player then return false, "Player not found!" end
+    local is = player:get_wielded_item()
+    if is:get_name() ~= "copier:copier_ready" then return false, "Please wield a ready copier while using this command." end
+    local i_meta = is:get_meta():to_table()
+    local i_meta_serialized = minetest.serialize(i_meta)
+    local file = io.open(SP .. "/" .. param,"w")
+    file:write(i_meta_serialized)
+    file:close()
+    return true, "Copied data saved to \"" .. SP .. "/" .. param .. "\""
+  end,
+})
+
+minetest.register_chatcommand("copier_import",{
+  params = "<copy name>",
+  privs = {creative=true},
+  description = "Load a copier save table from a file",
+  func = function(name,param)
+    local player = minetest.get_player_by_name(name)
+    if not player then return false, "Player not found!" end
+    local is = ItemStack("copier:copier_ready")
+    local file = io.open(SP .. "/" .. param)
+    if not file then return false, "Copy not exist!" end
+    local i_meta_serialized = file:read("*a")
+    local i_meta = minetest.deserialize(i_meta_serialized,true)
+    is:get_meta():from_table(i_meta)
+    minetest.add_item(player:get_pos(), is)
+    file:close()
+    return true, "Spawned a copier at your position."
   end,
 })
