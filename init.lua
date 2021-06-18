@@ -4,6 +4,7 @@ License detail at LICENSE.md
 LGPL text at lgpl-2.1.md
 ]]--
 
+local NP_E = minetest.get_modpath("node_placer")
 copier = {}
 local WP = minetest.get_worldpath()
 copier.save_path = WP .. "/copier_saves"
@@ -37,6 +38,9 @@ function copier.place_node_from_copier(pos,IS,placer)
   minetest.set_node(pos, {name=n_name,param1=n_param1,param2=n_param2})
   local pn_meta = minetest.get_meta(pos)
   pn_meta:from_table(n_meta)
+  if NP_E then
+    node_placer.set_placer(pos,placer:get_player_name())
+  end
   return true
 end
 
