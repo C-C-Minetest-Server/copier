@@ -77,7 +77,7 @@ end
 minetest.register_tool("copier:copier",{
   description = "Copier (Nothing inside)\nPunch a node to save it",
   short_description = "Copier (Nothing inside)",
-  groups = {copier = 1},
+  groups = {copier = 1, tool = 1},
   inventory_image = "copier_copier.png",
   on_use = copier.on_use,
   stack_max = 1,
@@ -86,7 +86,7 @@ minetest.register_tool("copier:copier",{
 minetest.register_tool("copier:copier_water",{
   description = "Copier (Nothing inside, Water Pointable)\nPunch a node to save it",
   short_description = "Copier (Nothing inside, Water Pointable)",
-  groups = {copier = 1},
+  groups = {copier = 1, tool = 1},
   inventory_image = "copier_copier.png",
   on_use = copier.on_use,
   liquids_pointable = true,
