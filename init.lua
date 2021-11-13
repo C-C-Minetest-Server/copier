@@ -28,6 +28,21 @@ function copier.place_node_from_copier(pos,IS,placer)
     end
     return
   end
+  -- Deny save_in_at_nodedb to avoid advtraisn bug and security issues
+  if minetest.get_item_group(n_name,"save_in_at_nodedb") > 0 then
+    if placer:is_player() then
+      minetest.chat_send_player(placer:get_player_name(),"You cannot paste Advance Trains nodes!")
+    end
+    return
+  end
+  -- Deny unknown node copying
+  if not minetest.registered_nodes[n_name] then
+    if placer:is_player() then
+      minetest.chat_send_player(placer:get_player_name(),"You cannot paste unknown nodes!")
+    end
+    return
+  end
+
   local n_param1 = meta:get_int("n_param1")
   local n_param2 = meta:get_int("n_param2")
   -- minetest.set_node(pos, node)
@@ -58,6 +73,20 @@ copier.on_use = function(itemstack, placer, pointed_thing)
   if n_owner and n_owner ~= placer:get_player_name() then
     if placer:is_player() then
       minetest.chat_send_player(placer:get_player_name(),"You cannot copy locked nodes that is not owned by you!")
+    end
+    return
+  end
+  -- Deny save_in_at_nodedb to avoid advtraisn bug and security issues
+  if minetest.get_item_group(n_name,"save_in_at_nodedb") > 0 then
+    if placer:is_player() then
+      minetest.chat_send_player(placer:get_player_name(),"You cannot copy Advance Trains nodes!")
+    end
+    return
+  end
+  -- Deny unknown node copying
+  if not minetest.registered_nodes[n_name] then
+    if placer:is_player() then
+      minetest.chat_send_player(placer:get_player_name(),"You cannot copy unknown nodes!")
     end
     return
   end
